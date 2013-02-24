@@ -33,11 +33,14 @@ def hash_switches_and_values(split)
   current = nil
 
   split.each do |p|
-    if p =~ /^--?(.+)/
+    # TODO: search for conmark from results, something still fucked up here
+    if p =~ /^--{0,1}(.+)/
       if current
-        result << current
-      end
-      unless current and current[:negate]
+        unless current[:negate]
+          result << current
+          current = {}
+        end
+      else
         current = {}
       end
       current[:switch] = $1
@@ -45,9 +48,8 @@ def hash_switches_and_values(split)
       if current
         result << current
       end
-      current = {
-        :negate => true,
-      }
+      current = {}
+      current[:negate] = true
     else
       raise "Found a value without corresponding arg" unless current
       current[:values] ||= []
@@ -80,6 +82,7 @@ end
 def parse_append_line(line)
   ss = shellsplit(line)
   {
+    :shell_split => ss,
     :split_args => hash_switches_and_values(ss),
   }
 end
