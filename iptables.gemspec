@@ -17,4 +17,5 @@ Gem::Specification.new do |s|
   # Dependencies
   s.required_ruby_version = '>= 1.8.7'
   s.add_runtime_dependency "json"
+  s.add_development_dependency "rspec"
 end
