@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+#require 'iptables'
+require 'json'
+require 'bundler/setup'
+Bundler.require :default
+
+ipt = Iptables.new
+jj ipt.decode(STDIN.read)
