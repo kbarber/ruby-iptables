@@ -23,84 +23,40 @@ def debug(text)
   puts "D, #{text}"
 end
 
-# Takes an array of split iptables arguments and parses them returning a hash
-def parse_shell_split(split)
-  # Resultant hash
-  hash = {
-    :split => split,
-    :parameters => {},
-    :matches => [],
-    :chain => nil,
-    :target_options => {},
-  }
+# Takes a split array, and finds switches and arguments. It returns a hash with
+# switches on the LHS, and values on the right. Values appear as arrays.
+#
+# For switches without values, the RHS will just be the boolean `true`.
+def hash_switches_and_values(split)
+  result = []
 
-  # First two parameters should be -A CHAIN
-  raise UnparseableSplit, "First argument [#{split[0]}] in line is not -A" if split[0] != "-A"
-  raise UnparseableSplit, "Second argument [#{split[1]}] in line is not a word" if split[1] !~ /^\w+/
-
-  # Load the chain into our hash
-  hash[:chain] = split[1]
-
-  # Remove those elements, we are done with them
-  split.shift(2)
-
-  # Now iterate across the rest, here we set some initial states
-  negate = false
-  match = false
-  target = false
-  switch = nil
-  match_name = nil
-  match_hash = nil
+  current = nil
 
   split.each do |p|
-    if p == "!"
-      # Hit a negative? Negate that sucker
-      negate = true
-    elsif p == '-m'
-      raise UnparseableSplit, "Cannot negate a match declaration" if negate
-      # Hit a match
-      match = true
-    elsif p == '-j'
-      raise UnparseableSplit, "Cannot negate a jump" if negate
-
-      # Close off any other switches
-      if switch
-        if match
-          raise UnparseableSplit, "Found a -j, previous switch was a match but not match_name" unless match_name
-
-          match_hash ||= {}
-          match_hash[:name] = match_name
-          match_hash[:options] ||= {}
-          match_hash[:options][switch] = true
-          hash[:matches] << match_hash
-        else
-          hash[:parameters][switch] = true
-        end
+    if p =~ /^--?(.+)/
+      if current
+        result << current
       end
-
-      target = true
-      # Reset some states
-      match = false
-      match_name = nil
-      switch = nil
+      unless current and current[:negate]
+        current = {}
+      end
+      current[:switch] = $1
+    elsif p == '!'
+      if current
+        result << current
+      end
+      current = {
+        :negate => true,
+      }
     else
-      # Its probably a value lets sum it all up
-      if match
-        raise UnparseableSplit, "Cannot negate a match name" if negate
-        # The value is the name of the matcher
-        match_name = p
-      else
-        # Looks like a value
-      end
-
-      # Reset some states
-      negate = false
-      match = false
-      switch = nil
+      raise "Found a value without corresponding arg" unless current
+      current[:values] ||= []
+      current[:values] << p
     end
   end
+  result << current
 
-  hash
+  result
 end
 
 # Break rule line into pices like a shell, stolen from ruby core
@@ -123,11 +79,9 @@ end
 # Parses an append line return a hash
 def parse_append_line(line)
   ss = shellsplit(line)
-  begin
-    parse_shell_split(ss)
-  rescue UnparseableSplit => e
-    raise UnparseableLine, "Cannot parse line [#{line}] because [#{e.message}]"
-  end
+  {
+    :split_args => hash_switches_and_values(ss),
+  }
 end
 
 # Takes raw iptables-save input, returns a data hash
