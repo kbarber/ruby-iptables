@@ -34,8 +34,8 @@ def hash_switches_and_values(split)
 
   split.each do |p|
     # TODO: search for conmark from results, something still fucked up here
-    if p =~ /^--{0,1}(.+)/
-      if current
+    if p =~ /^--?(.+)/
+      if current and !current.empty?
         unless current[:negate]
           result << current
           current = {}
@@ -132,7 +132,7 @@ def parse_iptables_save(text)
 end
 
 hash = {}
-File.open('sample-iptables-save') do |f|
+File.open('sample-iptables-save2') do |f|
   hash = parse_iptables_save(f.read)
 end
 
