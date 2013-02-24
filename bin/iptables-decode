@@ -1,10 +1,17 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
-#require 'iptables'
 require 'json'
-require 'bundler/setup'
-Bundler.require :default
+begin
+  require 'iptables'
+rescue LoadError => e
+  begin
+    require 'bundler/setup'
+    Bundler.require :default
+  rescue LoadError
+    raise e
+  end
+end
 
 ipt = Iptables.new
 jj ipt.decode(STDIN.read)

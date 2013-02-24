@@ -1,19 +1,68 @@
-require 'pp'
-
 # This class encodes and decodes iptables style -save and -restore formats
 class Iptables
 
   def initialize
   end
 
+  # Takes the output for iptables-save returning a hash
   def decode(text)
     parse_iptables_save(text)
   end
 
-  # Debug output
+  # Takes raw iptables-save input, returns a data hash
   # @api private
-  def debug(text)
-    puts "D, #{text}"
+  def parse_iptables_save(text)
+    # Set the table to nil to begin with so we can detect append lines with no
+    # prior table decleration.
+    table = nil
+
+    # Input line number for debugging later
+    original_line_number = 0
+
+    # Hash for storing the final result
+    hash = {}
+
+    text.each_line do |line|
+
+      # If we find a table declaration, change table
+      if line =~ /^\*([a-z]+)$/
+        table = $1
+        debug("Found table [#{table}] on line [#{original_line_number}]")
+      end
+
+      # If we find an append line, parse it
+      if line =~ /^-A (\S+)/
+        raise NoTable, "Found an append line [#{line}] on line [#{input_line}], but no table yet" if table.nil?
+
+        chain = $1
+        line_hash = parse_append_line(line)
+
+        line_hash[:source] = {
+          :original_line => line,
+          :original_line_number => original_line_number,
+        }
+
+        hash[table] ||= {}
+        hash[table][chain] ||= {}
+        hash[table][chain][:rules] ||= []
+        hash[table][chain][:rules] << line_hash
+      end
+
+      original_line_number += 1
+    end
+
+    hash
+  end
+
+  # Parses an append line return a hash
+  # @api private
+  def parse_append_line(line)
+    ss = shellsplit(line)
+    switch_hash = hash_switches_and_values(ss)
+    {
+      :shell_split => ss,
+      :split_args => switch_hash,
+    }
   end
 
   # Takes a split array, and finds switches and arguments. It returns a hash with
@@ -79,60 +128,12 @@ class Iptables
     words
   end
 
-  # Parses an append line return a hash
+
+
+  # Debug output
   # @api private
-  def parse_append_line(line)
-    ss = shellsplit(line)
-    switch_hash = hash_switches_and_values(ss)
-    {
-      :shell_split => ss,
-      :split_args => switch_hash,
-    }
-  end
-
-  # Takes raw iptables-save input, returns a data hash
-  # @api private
-  def parse_iptables_save(text)
-    # Set the table to nil to begin with so we can detect append lines with no
-    # prior table decleration.
-    table = nil
-
-    # Input line number for debugging later
-    original_line_number = 0
-
-    # Hash for storing the final result
-    hash = {}
-
-    text.each_line do |line|
-
-      # If we find a table declaration, change table
-      if line =~ /^\*([a-z]+)$/
-        table = $1
-        debug("Found table [#{table}] on line [#{original_line_number}]")
-      end
-
-      # If we find an append line, parse it
-      if line =~ /^-A (\S+)/
-        raise NoTable, "Found an append line [#{line}] on line [#{input_line}], but no table yet" if table.nil?
-
-        chain = $1
-        line_hash = parse_append_line(line)
-
-        line_hash[:source] = {
-          :original_line => line,
-          :original_line_number => original_line_number,
-        }
-
-        hash[table] ||= {}
-        hash[table][chain] ||= {}
-        hash[table][chain][:rules] ||= []
-        hash[table][chain][:rules] << line_hash
-      end
-
-      original_line_number += 1
-    end
-
-    hash
+  def debug(text)
+    puts "D, #{text}"
   end
 
   # Base class for iptables parser exceptions
