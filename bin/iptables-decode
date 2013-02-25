@@ -2,6 +2,7 @@
 
 require 'rubygems'
 require 'json'
+require 'pp'
 begin
   require 'iptables'
 rescue LoadError => e
@@ -14,4 +15,5 @@ rescue LoadError => e
 end
 
 ipt = Iptables.new
+#pp ipt.decode(STDIN.read)
 jj ipt.decode(STDIN.read)

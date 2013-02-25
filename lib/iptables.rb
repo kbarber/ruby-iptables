@@ -58,19 +58,19 @@ class Iptables
   # @api private
   def parse_append_line(line)
     ss = shellsplit(line)
-    switch_hash = hash_switches_and_values(ss)
+    switch_hash = switch_hash(ss)
     {
       :shell_split => ss,
       :split_args => switch_hash,
     }
   end
 
-  # Takes a split array, and finds switches and arguments. It returns a hash with
-  # switches on the LHS, and values on the right. Values appear as arrays.
+  # Takes an argument array, and returns swtiches and values. It returns a hash
+  # with switches on the LHS, and values on the right. Values appear as arrays.
   #
   # For switches without values, the RHS will just be the boolean `true`.
   # @api private
-  def hash_switches_and_values(split)
+  def switch_hash(split)
     result = []
 
     current = nil
@@ -127,8 +127,6 @@ class Iptables
     end
     words
   end
-
-
 
   # Debug output
   # @api private
