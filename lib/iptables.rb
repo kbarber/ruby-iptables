@@ -58,11 +58,93 @@ class Iptables
   # @api private
   def parse_append_line(line)
     ss = shellsplit(line)
-    switch_hash = switch_hash(ss)
+    sh = switch_hash(ss)
+    rh = rule(sh)
     {
       :shell_split => ss,
-      :split_args => switch_hash,
+      :swtch_hash => sh,
+      :rule => rh,
     }
+  end
+
+  # Takes a switch_hash and returns the rule as a hash
+  # @api private
+  def rule(switch_hash)
+    h = {
+      :chain => nil,
+      :parameters => {},
+      :target => nil,
+      :matches => [],
+    }
+
+    # States
+    match = false
+    match_current = {}
+    target = false
+
+    switch_hash.each do |sh|
+      sw = sh[:switch]
+      if sw == "A"
+        h[:chain] = sh[:values].first
+        next
+      end
+
+      # Outside of match and target, these letters are the basic parameters
+      if !match and !target and ["p", "s", "d", "i", "o", "f"].include? sw
+        h[:parameters]["#{sh[:negate]? '!' : ''}#{sw}"] = sh[:values]
+        next
+      end
+
+      # If option is 'm' then we are in a match
+      if sw == 'm'
+        if match and !match_current.empty?
+          # We were already in a match, stow it
+          h[:matches] << match_current
+          match_current = {}
+        end
+
+        # Clear the current match
+        match_current = {}
+        match_current[:name] = sh[:values].first
+
+        # Reset states
+        match = true
+        target = false
+
+        next
+      end
+
+      if match
+        match_current[:options] ||= {}
+        match_current[:options]["#{sh[:negate]? '!' : ''}#{sw}"] = sh[:values]
+
+        next
+      end
+
+      # If option is 'j' then its a target, and anything else is a target_option
+      if sw == "j"
+        if match and !match_current.empty?
+          # We were already in a match, stow it
+          h[:matches] << match_current
+          match_current = {}
+        end
+
+        h[:target] = sh[:values].first
+
+        # Reset states
+        target = true
+        match = false
+
+        next
+      end
+    end
+
+    # Stow away any incomplete matches
+    if match and !match_current.empty?
+      h[:matches] << match_current
+    end
+
+    h
   end
 
   # Takes an argument array, and returns swtiches and values. It returns a hash
