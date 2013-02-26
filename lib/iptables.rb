@@ -115,13 +115,6 @@ class Iptables
         next
       end
 
-      if match
-        match_current[:options] ||= {}
-        match_current[:options]["#{sh[:negate]? '!' : ''}#{sw}"] = sh[:values]
-
-        next
-      end
-
       # If option is 'j' then its a target, and anything else is a target_option
       if sw == "j"
         if match and !match_current.empty?
@@ -135,6 +128,13 @@ class Iptables
         # Reset states
         target = true
         match = false
+
+        next
+      end
+
+      if match
+        match_current[:options] ||= {}
+        match_current[:options]["#{sh[:negate]? '!' : ''}#{sw}"] = sh[:values]
 
         next
       end
