@@ -75,6 +75,7 @@ class Iptables
       :parameters => {},
       :target => nil,
       :matches => [],
+      :target_options => {},
     }
 
     # States
@@ -135,6 +136,11 @@ class Iptables
         target = true
         match = false
 
+        next
+      end
+
+      if target
+        h[:target_options]["#{sh[:negate]? '!' : ''}#{sw}"] = sh[:values]
         next
       end
     end
