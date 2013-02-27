@@ -10,10 +10,14 @@ class Iptables
   # @example Decode iptables-save output
   #   Iptables.decode(`iptables-save`)
   # @param text [String] the raw output of iptables-save
+  # @param opts [Hash] options for the decoder
+  # @option opts [Bool] :debug If true, turns on debugging output
+  # @option opts [String] :version verison of iptables to use while parsing
+  #   rules
   # @return [Hash] returns a hash containing the parsed rules
   # @see Iptables::Decoder
-  def self.decode(text)
-    decoder = Decoder.new
+  def self.decode(text, opts = {})
+    decoder = Decoder.new(opts)
     decoder.parse_iptables_save(text)
   end
 
