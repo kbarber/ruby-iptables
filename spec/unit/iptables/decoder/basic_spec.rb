@@ -1,7 +1,7 @@
 require 'spec_helper'
 
-describe Iptables do
+describe Iptables::Decoder do
   it 'should allow instantiation' do
-    Iptables.new
+    Iptables::Decoder.new
   end
 end

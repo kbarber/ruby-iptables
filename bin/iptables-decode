@@ -14,6 +14,5 @@ rescue LoadError => e
   end
 end
 
-ipt = Iptables.new
-#pp ipt.decode(STDIN.read)
-jj ipt.decode(STDIN.read)
+#pp Iptables.decode(STDIN.read)
+jj Iptables.decode(STDIN.read)

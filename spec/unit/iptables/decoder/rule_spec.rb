@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe 'Iptables#rule_hash' do
-  let(:ipt) do
-    Iptables.new
+describe 'Iptables::Decoder#rule_hash' do
+  subject do
+    Iptables::Decoder.new
   end
 
   tests = [
@@ -145,7 +145,7 @@ describe 'Iptables#rule_hash' do
   ]
   tests.each do |t|
     it "run sample test [#{t[:name]}]" do
-      ipt.rule(t[:input]).should eq t[:output]
+      subject.rule(t[:input]).should eq t[:output]
     end
   end
 end
