@@ -12,25 +12,45 @@ class Iptables
   # @param text [String] the raw output of iptables-save
   # @param opts [Hash] options for the decoder
   # @option opts [Bool] :debug If true, turns on debugging output
-  # @option opts [String] :version verison of iptables to use while parsing
-  #   rules
+  # @option opts [String] :iptables_compatibilty version of iptables to be
+  #   compatible with. Since some versions differ wildly, this might be
+  #   necessary.
   # @return [Hash] returns a hash containing the parsed rules
   # @see Iptables::Decoder
   def self.decode(text, opts = {})
     decoder = Decoder.new(opts)
-    decoder.parse_iptables_save(text)
+    decoder.decode(text)
   end
 
   # This is the internal Decoder class used by methods in the main class.
-  # @api private
   class Decoder
     # Initialize the decoder object
     #
-    # @api private
     # @param opts [Hash] a hash of options
     # @option opts [Bool] :debug If true, turns on debugging output
+    # @option opts [String] :iptables_compatibilty version of iptables to be
+    #   compatible with. Since some versions differ wildly, this might be
+    #   necessary.
     def initialize(opts = {})
-      @opts = {:debug => false}.merge(opts)
+      @opts = {
+        :debug => false,
+        :iptables_compatibility => nil,
+      }.merge(opts)
+    end
+
+    # Decodes iptables-save input into a normalized hash
+    #
+    # @param text [String] the raw output of iptables-save
+    # @return [Hash] returns a hash containing the parsed rules
+    # @raise [Iptables::IptablesException] raised on a known exception
+    def decode(text)
+      {
+        :metadata => {
+          :ruby_iptables_version => VERSION,
+          :iptables_compatibility => @opts[:iptables_compatibility],
+        },
+        :result => parse_iptables_save(text),
+      }
     end
 
     # Takes raw iptables-save input, returns a data hash
@@ -38,8 +58,8 @@ class Iptables
     # @api private
     # @param text [String] the raw output of iptables-save
     # @return [Hash] returns a hash containing the parsed rules
-    # @raise [NoTable] raised if a rule is passed without a prior table
-    #   declaration
+    # @raise [Iptables::NoTable] raised if a rule is passed without a prior
+    #   table declaration
     def parse_iptables_save(text)
       # Set the table to nil to begin with so we can detect append lines with no
       # prior table decleration.
@@ -197,6 +217,8 @@ class Iptables
     # @param split [Array] a list of arguments and values split in a shell-safe
     #   way
     # @return [Hash] a semi-parsed hash of arguments, values and negation status
+    # @raise [Iptables::UnparseableSplit] raised when the split cannot be parsed
+    #   into the correct format, usually because the input format is incorrect.
     def switch_hash(split)
       result = []
 
@@ -248,6 +270,7 @@ class Iptables
     #   safe way.
     # @see http://svn.ruby-lang.org/repos/ruby/trunk/lib/shellwords.rb Original
     #   code
+    # @raise [ArgumentError] raised on unmatched double quote
     def shellsplit(line)
       words = []
       field = ''
@@ -263,7 +286,7 @@ class Iptables
       words
     end
 
-    # Debug output
+    # Prints debug output to STDOUT if debug switch is true
     #
     # @api private
     # @param text [String] text to output for debugging
