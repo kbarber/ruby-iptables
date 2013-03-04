@@ -227,7 +227,6 @@ class Iptables
       debug("processing #{split.inspect}")
 
       split.each do |p|
-        # TODO: search for conmark from results, something still fucked up here
         debug "p: #{p}"
         debug "pre current: #{current.inspect}" if current
         if p =~ /^--?(.+)/
@@ -241,10 +240,10 @@ class Iptables
           end
           current[:switch] = $1
         elsif p == '!'
-          if current
+          if current and !current.empty?
             result << current
+            current = {}
           end
-          current = {}
           current[:negate] = true
         else
           raise UnparseableSplit, "Found a value without corresponding arg" unless current
