@@ -24,6 +24,10 @@ class Iptables
 
   # This is the internal Decoder class used by methods in the main class.
   class Decoder
+    # @!attribute r opts
+    #   @return [Hash] Options hash set on initialization
+    attr_reader :opts
+
     # Initialize the decoder object
     #
     # @param opts [Hash] a hash of options
@@ -47,7 +51,7 @@ class Iptables
       {
         :metadata => {
           :ruby_iptables_version => VERSION,
-          :iptables_compatibility => @opts[:iptables_compatibility],
+          :iptables_compatibility => opts[:iptables_compatibility],
         },
         :result => parse_iptables_save(text),
       }
@@ -241,8 +245,11 @@ class Iptables
           current[:switch] = $1
         elsif p == '!'
           if current and !current.empty?
-            result << current
-            current = {}
+            unless current[:switch] \
+              and iptables_backwards_negates.include? current[:switch]
+              result << current
+              current = {}
+            end
           end
           current[:negate] = true
         else
@@ -283,6 +290,14 @@ class Iptables
         end
       end
       words
+    end
+
+    def iptables_backwards_negates
+      if opts[:iptables_compatibility] == '1.3.5'
+        %w{p s d i o ctorigsrc ctorigdst ctreplsrc ctrepldst espspi length sports dports ports mss}
+      else
+        []
+      end
     end
 
     # Prints debug output to STDOUT if debug switch is true
