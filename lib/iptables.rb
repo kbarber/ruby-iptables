@@ -1,9 +1,9 @@
 # This class encodes and decodes iptables style -save and -restore formats
 #
-# @version 1.0.0
+# @version 0.0.1
 class Iptables
 
-  VERSION = '1.0.0'
+  VERSION = '0.0.1'
 
   # Takes the output for iptables-save returning a hash
   #
